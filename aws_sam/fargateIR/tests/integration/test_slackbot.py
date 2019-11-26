@@ -61,7 +61,7 @@ EVENT_FIXTURE_COMPLETE = {
             "artifact_count": 6,
             "quicksight_url": "https://foo.bar.com",
             "artifact_package": "https://s3.us-west-2.foo.bar.com",
-            "confirm": True
+            "confirm": True,
         },
         "success": True,
         "description": "The plan MAXIMUM was initiated.",

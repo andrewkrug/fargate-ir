@@ -1,7 +1,12 @@
 import boto3
-import json
 import os
 import slack
+
+
+from logging import getLogger
+
+
+logger = getLogger(__name__)
 
 
 # Global Variables
@@ -31,7 +36,7 @@ def getSevColor(sev):
 
 
 def getRemColor(rem):
-    if rem == False:
+    if rem is False:
         color = "#ff0000"
     else:
         color = "#83F52C"
@@ -131,7 +136,6 @@ def PublishRemediation(event, context):
                     {"title": "Status", "value": gd_rem, "short": "true"},
                 ],
             },
-
         ]
     else:
         message = [
@@ -142,7 +146,6 @@ def PublishRemediation(event, context):
                 "fields": [{"title": "Status", "value": gd_rem, "short": "true"},],
             }
         ]
-
 
     if confirm:
         message.append(
@@ -158,21 +161,22 @@ def PublishRemediation(event, context):
                 "color": gd_color,
                 "actions": [
                     {
-                    "type": "button",
-                    "text": "Yes",
-                    "style": "primary",
-                    "url": "https://localhost"
+                        "type": "button",
+                        "text": "Yes",
+                        "style": "primary",
+                        "url": "https://localhost",
                     },
                     {
-                    "type": "button",
-                    "text": "No",
-                    "style": "danger",
-                    "url": "https://localhost"
+                        "type": "button",
+                        "text": "No",
+                        "style": "danger",
+                        "url": "https://localhost",
                     },
-                ]
+                ],
             }
         )
     # Post Slack Message
     post = PostMessage(channel, token_bot, message, event["ts"])
+    logger.info(f"Post result is: {post}.")
 
     return event

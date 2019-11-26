@@ -1,5 +1,3 @@
-import boto3
-
 try:
     from lambda_handler import common
 except ImportError:

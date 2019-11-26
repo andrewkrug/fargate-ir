@@ -55,10 +55,11 @@ def get_session_token(region=None):
             Credentials=dict(
                 AccessKeyId=os.getenv("AWS_ACCESS_KEY_ID"),
                 SecretAccessKey=os.getenv("AWS_SECRET_ACCESS_KEY"),
-                SessionToken=os.getenv("AWS_SESSION_TOKEN")
+                SessionToken=os.getenv("AWS_SESSION_TOKEN"),
             )
         )
     return response
+
 
 def get_limited_policy(region, instance_id):
     policy_template = load_policy()

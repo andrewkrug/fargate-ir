@@ -95,6 +95,7 @@ def detect(event, context):
 
 def low_respond(event, context):
     logger = setup_logging()
+    logger.info("Running low response.")
     event["detail"]["remediation"]["evidence"] = {}
     event["detail"]["remediation"]["evidence"]["artifact_count"] = 0
     return event
@@ -102,6 +103,7 @@ def low_respond(event, context):
 
 def medium_respond(event, context):
     logger = setup_logging()
+    logger.info("Running medium response.")
     event["detail"]["remediation"]["evidence"] = {}
     event["detail"]["remediation"]["evidence"]["artifact_count"] = 0
     return event
@@ -109,6 +111,7 @@ def medium_respond(event, context):
 
 def high_respond(event, context):
     logger = setup_logging()
+    logger.info("Running medium response.")
     event["detail"]["remediation"]["evidence"] = {}
     event["detail"]["remediation"]["evidence"]["artifact_count"] = 0
     return event
@@ -116,6 +119,7 @@ def high_respond(event, context):
 
 def maximum_respond(event, context):
     logger = setup_logging()
+    logger.info("Running maximum response.")
     event["detail"]["remediation"]["evidence"] = {}
     event["detail"]["remediation"]["evidence"]["artifact_count"] = 0
     event["detail"]["remediation"]["success"] = True
@@ -162,16 +166,14 @@ def recover(event, context):
 def process_evidence(event, context):
     logger = setup_logging()
     logger.info("Processing the evidence.")
-    
+
     # Check to see if we have evidence to process.
     if event["detail"]["remediation"]["evidence"]["objects"] != []:
-        s3_bucket = os.getenv('EVIDENCE_BUCKET', "public.demo.reinvent2019")
+        s3_bucket = os.getenv("EVIDENCE_BUCKET", "public.demo.reinvent2019")
         logger.info(f"Processing evidence from: {s3_bucket}")
 
         # Process all of our packet captures to VPC-Flowlike json and parquet.
-        for object_key in event["detail"]["remediation"]["evidence"][
-            "objects"
-        ]:
+        for object_key in event["detail"]["remediation"]["evidence"]["objects"]:
             try:
                 logger.info(f"Attempting to process: {object_key}")
                 full_path = f"s3://{s3_bucket}/{object_key}"
@@ -202,4 +204,3 @@ def notify_complete(event, context):
     logger.info("Sending a notification to slack.")
     event = PublishRemediation(event, context)
     return event
-

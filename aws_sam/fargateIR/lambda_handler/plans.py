@@ -1,5 +1,3 @@
-import boto3
-import logging
 import os
 import time
 
@@ -167,9 +165,9 @@ class FargateRisk2Plan(object):
 
                 item = eni_info.index(interface)
                 eni_info[item]["vpc_id"] = subnet_response["Subnets"][0]["VpcId"]
-                eni_info[item]["sg_id"] = eni_response["NetworkInterfaces"][0]["Groups"][0][
-                    "GroupId"
-                ]
+                eni_info[item]["sg_id"] = eni_response["NetworkInterfaces"][0][
+                    "Groups"
+                ][0]["GroupId"]
         return eni_info
 
     def _get_eni_information(self, event):

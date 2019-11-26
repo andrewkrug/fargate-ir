@@ -1,5 +1,3 @@
-import boto3
-
 try:
     import common
 except ImportError:
@@ -55,7 +53,7 @@ def get_running_tasks_for_definition(client, clusters, task_definition_json):
         for running_task in task_detail.get("tasks"):
             if running_task["taskDefinitionArn"] in task_arns:
                 running_tasks.append(running_task)
-    
+
     for task in running_tasks:
         task.pop("overrides", None)
         task.pop("containers", None)
@@ -82,16 +80,16 @@ def get_eni_info(boto_session, eni_id):
 
 def event_to_task_arn(event):
     task_arns = []
-    for task in event['detail']['resource']['fargateTasks']:
-        task_arns.append(dict(taskArn=task['taskArn'],clusterArn=task['clusterArn']))
+    for task in event["detail"]["resource"]["fargateTasks"]:
+        task_arns.append(dict(taskArn=task["taskArn"], clusterArn=task["clusterArn"]))
     return task_arns
 
 
 def stop_task(boto_session, task_dict):
     ecs = boto_session.client("ecs")
     response = ecs.stop_task(
-        cluster=task_dict['clusterArn'],
-        task=task_dict['taskArn'],
-        reason='Task stopped as part of incident response.'
+        cluster=task_dict["clusterArn"],
+        task=task_dict["taskArn"],
+        reason="Task stopped as part of incident response.",
     )
     return response

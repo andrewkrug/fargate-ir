@@ -1,4 +1,3 @@
-import boto
 import boto3
 import json
 from moto import mock_ec2
@@ -63,6 +62,8 @@ class TestFargate(object):
             containerInstances=[container_instance_id],
             startedBy="moto",
         )
+
+        assert response is not None
 
         clusters = fargate.get_all_clusters(self.client)
         task_definitions = fargate.get_task_definitions_for_tag(self.client, tags)

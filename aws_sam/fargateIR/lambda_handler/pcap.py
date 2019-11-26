@@ -162,9 +162,7 @@ class Analyze(object):
     def get_geoip_database(self):
         geolite_location = "/tmp/GeoLite2-City.tar.gz"
         if not os.path.exists("/tmp/GeoLite2-City.tar.gz"):
-            server_endpoint = (
-                "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz"
-            )
+            server_endpoint = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz"
             response = requests.get(server_endpoint)
             local_file_path = geolite_location
             # If the HTTP GET request can be served

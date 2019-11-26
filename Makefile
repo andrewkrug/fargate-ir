@@ -12,6 +12,16 @@ setup:
 	aws cloudformation create-stack --stack-name FargateIRStepFunctionDeployment \
 	--template-body file://cloudformation/step-function-deployment.yml
 
+.PHONY: black 
+black:
+	black aws_sam/fargateIR/lambda_handler/
+	black aws_sam/fargateIR/tests/
+
+.PHONY: flake
+flake:
+	flake8 aws_sam/fargateIR/lambda_handler/ --ignore=E231
+	flake8 aws_sam/fargateIR/tests/ --ignore=E231 
+
 .PHONY: get-code-bucket-name
 get-code-bucket-name:
 	aws cloudformation describe-stacks --stack-name FargateIRStepFunctionDeployment \
@@ -54,14 +64,13 @@ deploy:
 
 .PHONY: setup-test
 setup-test:
-	pip install pytest pytest-mock pytest-watch flake8 black boto3 moto
+	pip install pytest pytest-mock pytest-watch flake8 black boto3 moto pyarrow
 	pip install -r $(ROOT_DIR)/aws_sam/fargateIR/lambda_handler/requirements.txt
+	pip install -r $(ROOT_DIR)/aws_sam/fargateIR/general_layer/requirements.txt
+	pip install -r $(ROOT_DIR)/aws_sam/fargateIR/pandas_layer/requirements.txt
 
 .PHONY: run-test
-run-test:
-	black aws_sam/fargateIR/lambda_handler/*.py
-	black aws_sam/fargateIR/tests/unit/*.py
-	cd aws_sam/fargateIR/ flake8 .
+run-test: black flake
 	cd aws_sam/fargateIR/ && python -m pytest tests/ -v
 
 .PHONY: test-watch
@@ -70,7 +79,7 @@ test-watch:
 
 .PHONY: test
 test:
-	docker run -v $(ROOT_DIR):/var/task lambci/lambda:build-python3.7 bash -c "make setup-test && make run-test"
+	docker run --env AWS_DEFAULT_REGION=us-east-1 -v $(ROOT_DIR):/var/task lambci/lambda:build-python3.7 bash -c "make setup-test && make run-test"
 
 .PHONY: install-sam
 install-sam:
@@ -108,4 +117,3 @@ update-local-state-machine:
 .PHONY: delete-local-state-machine
 delete-local-state-machine:
 	aws stepfunctions delete-state-machine --endpoint http://localhost:8083 --state-machine-arn arn:aws:states:us-east-1:123456789012:stateMachine:fargateIR
-
