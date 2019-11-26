@@ -1,7 +1,10 @@
 # Fargate IR
+
 Proof of concept around how the SSM Agent running in Fargate can be orchestrated to help with incident response.
 
 ## Build status
+
+- TBD after the repository is made public.  For now try running `make test`
 
 ## Status
 
@@ -10,6 +13,11 @@ Work in progress. Proof of concept only.  **Non Production Use**
 ## Basic Flow
 
 ![Architecture Diagram](images/architecture.png "Basic Flow")
+
+## Developing 
+
+100% of the development for this is done using `Makefile` and `docker`.
+Get started by running `make test` in order to verify that all the unit tests work on your machine.
 
 ## To Do
 
