@@ -1,0 +1,6 @@
+slackclient
+geoip2
+pypcapkit
+requests
+pyyaml
+python-json-logger

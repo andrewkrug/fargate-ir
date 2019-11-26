@@ -1,0 +1,618 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  fargateIR
+  Sample SAM Template for fargateIR
+Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: guardduty-workflow
+    Description: Prefix for the resources that are created.
+
+  SlackChannel:
+    Type: String
+    Default: alert-triage
+    Description: Slack channel for sending notifications.
+
+  SlackTokenName:
+    Type: String
+    Default: bot-token-guardduty
+    Description: Name of the Slack Token parameter. # This is the parameter name you stored in Parameter Store
+
+Globals:
+  Function:
+    Timeout: 30
+Resources:
+  GeneralLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: FargateIRLayer
+        Description: Includes comprehensive dependencies for working with fargateir.
+        ContentUri: general_layer/                
+        CompatibleRuntimes:                
+          - python3.7
+        LicenseInfo: 'MPL2.0'
+        RetentionPolicy: Retain
+  PandasLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: PandasLayer
+        Description: Includes comprehensive dependencies for working with fargateir.
+        ContentUri: pandas_layer/                
+        CompatibleRuntimes:                
+          - python3.7
+        LicenseInfo: 'MPL2.0'
+        RetentionPolicy: Retain
+  AWSSDKLayerPermission1:
+    Type: "AWS::Lambda::LayerVersionPermission"
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref PandasLambdaLayer
+      Principal: '*'
+  AWSSDKLayerPermission2:
+    Type: "AWS::Lambda::LayerVersionPermission"
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref GeneralLambdaLayer
+      Principal: '*'
+  NotifyLambdaRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+            - sts:AssumeRole
+      Path: '/'
+      Policies: 
+        - 
+          PolicyName: NotifyPolicy
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - 
+                Effect: Allow
+                Action:
+                  - logs:*
+                Resource: arn:aws:logs:*:*:*
+              - 
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:DescribeParameters
+                Resource: '*'
+  
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'evidencebucket-${AWS::Region}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    DeletionPolicy: Delete
+  S3UploaderRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+            - sts:AssumeRole
+      Path: '/'
+      Policies: 
+        - 
+          PolicyName: S3UploadRole
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - 
+                Effect: Allow
+                Action:
+                  - logs:*
+                Resource: arn:aws:logs:*:*:*
+              - 
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource: !GetAtt [ EvidenceBucket, Arn ]
+              - 
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource: 
+                  !Sub 
+                    - 'arn:aws:s3:::${Bucket}/*'
+                    - { Bucket: !Ref EvidenceBucket }
+              -
+                Effect: Allow
+                Action:
+                  - ssm:*
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - ecs:*
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - ec2:*
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - sts:*
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - route53:*
+                Resource: "*"
+  ResponderWriteRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+            - sts:AssumeRole
+      Path: '/'
+      Policies: 
+        - 
+          PolicyName: ResponderWriteRole
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - 
+                Effect: Allow
+                Action:
+                  - logs:*
+                Resource: arn:aws:logs:*:*:*
+              - 
+                Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                  - ssm:DescribeInstanceInformation
+                  - ssm:ListTagsForResource
+                Resource: '*'
+              - 
+                Effect: Allow
+                Action:
+                  - ecs:* 
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:*
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - sts:*
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - ssm:*
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - route53:*
+                Resource: "*"
+              - 
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource: !GetAtt [ EvidenceBucket, Arn ]
+              - 
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource: 
+                  !Sub 
+                    - 'arn:aws:s3:::${Bucket}/*'
+                    - { Bucket: !Ref EvidenceBucket }
+  StepFunctionEvent: 
+    Type: "AWS::Events::Rule"
+    Properties: 
+      Name: 
+        Fn::Join:
+        - '-'
+        - [!Ref ResourcePrefix, "trigger"]
+      Description: "Event Rule to trigger the GuardDuty remediation State Machine."
+      EventPattern: 
+        source: 
+        - aws.guardduty
+        detail-type:
+        - "GuardDuty Finding"
+      State: "ENABLED"
+      Targets: 
+      - 
+        Arn: !Ref StateMachine
+        Id: "TargetStateMachine"
+        RoleArn: !GetAtt [ CWStateExecutionRole, Arn ]
+  CWStateExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Service:
+                - "events.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: GDCWStateExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource: !Ref StateMachine
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+  NotifyFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.notify
+      Runtime: python3.7
+      Role: !GetAtt [ NotifyLambdaRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+  NotifyCompleteFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.notify_complete
+      Runtime: python3.7
+      Role: !GetAtt [ NotifyLambdaRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+  DetectFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.detect
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 60
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  ProtectFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.protect
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  MaximumResponseFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.maximum_respond
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  HighResponseFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.high_respond
+      Runtime: python3.7
+      Role: !GetAtt [ LambdaExecutionRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  MediumResponseFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.medium_respond
+      Runtime: python3.7
+      Role: !GetAtt [ LambdaExecutionRole, Arn ]  
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  LowResponseFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.low_respond
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]  
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  ProcessEvidenceFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.process_evidence
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]  
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      MemorySize: 3008
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  RecoverFargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.recover
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ] 
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  FargateIRFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda_handler/
+      Handler: handle.lambda_handler
+      Runtime: python3.7
+      Role: !GetAtt [ S3UploaderRole, Arn ]
+      Layers:
+        - !Ref GeneralLambdaLayer
+        - !Ref PandasLambdaLayer
+      Timeout: 900
+      Environment:
+        Variables:
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_TOKEN_NAME: !Ref SlackTokenName
+          EVIDENCE_BUCKET: !Ref EvidenceBucket
+          FARGATE_IR_ROLE_ARN: !GetAtt [ S3UploaderRole, Arn ]
+  StatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "Comment": "An example of using a stepFunction to perform incident response on Fargate using SSM.",
+              "StartAt": "NotifyStart",
+              "States": {
+                "NotifyStart": {
+                  "Type": "Task",
+                  "Resource": "${NotifyLambdaArn}",
+                  "TimeoutSeconds": 60,
+                  "Next": "Detect"
+                },
+                "Detect": {
+                  "Type": "Task",
+                  "Resource": "${DetectLambdaArn}",
+                  "TimeoutSeconds": 60,
+                  "Next": "Protect"
+                },
+                "Protect": {
+                  "Type": "Task",
+                  "Resource": "${ProtectLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "Respond"
+                },
+                "Respond": {
+                  "Type": "Choice",
+                  "Choices": [ 
+                    {
+                      "StringEquals": "MAXIMUM",
+                      "Variable": "$.detail.remediation.risk",
+                      "Next": "MaximumResponse"
+                    },
+                    {
+                      "StringEquals": "HIGH",
+                      "Variable": "$.detail.remediation.risk",
+                      "Next": "HighResponse"
+                    },
+                    {
+                      "StringEquals": "MEDIUM",
+                      "Variable": "$.detail.remediation.risk",
+                      "Next": "MediumResponse"
+                    },
+                    {
+                      "StringEquals": "LOW",
+                      "Variable": "$.detail.remediation.risk",
+                      "Next": "LowResponse"
+                    }
+                  ],
+                  "Default": "UnclassifiedResponse"
+                },
+                "MaximumResponse": {
+                  "Type": "Task",
+                  "Resource": "${MaximumResponseLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "PostRespond"
+                },
+                "HighResponse": {
+                  "Type": "Task",
+                  "Resource": "${HighResponseLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "PostRespond"
+                },
+                "MediumResponse": {
+                  "Type": "Task",
+                  "Resource": "${MediumResponseLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "PostRespond"
+                },
+                "LowResponse": {
+                  "Type": "Task",
+                  "Resource": "${LowResponseLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "PostRespond"
+                },
+                "PostRespond": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "NumericGreaterThanEquals": 1,
+                      "Variable": "$.detail.remediation.evidence.artifact_count",
+                      "Next": "ProcessEvidence"
+                    },
+                    {
+                      "NumericLessThanEquals": 0,
+                      "Variable": "$.detail.remediation.evidence.artifact_count",
+                      "Next": "NotifyComplete"
+                    }
+                  ],
+                  "Default": "NotifyComplete"
+                },
+                "ProcessEvidence": {
+                  "Type": "Task",
+                  "Resource": "${ProcessEvidenceLambdaArn}",
+                  "TimeoutSeconds": 900,
+                  "Next": "Recover"
+                },
+                "Recover": {
+                  "Type": "Task",
+                  "Resource": "${RecoverLambdaArn}",
+                  "TimeoutSeconds": 300,
+                  "Next": "NotifyComplete"
+                },
+                "NotifyComplete": {
+                  "Type": "Task",
+                  "Resource": "${NotifyCompleteLambdaArn}",
+                  "TimeoutSeconds": 60,
+                  "End": true
+                },
+                "UnclassifiedResponse" : {
+                  "Type" : "Succeed",
+                  "OutputPath": "$"
+                }
+              }
+            }
+          -
+            LambdaArn: !GetAtt [ FargateIRFunction, Arn ]
+            NotifyLambdaArn: !GetAtt [ NotifyFargateIRFunction, Arn ]
+            DetectLambdaArn: !GetAtt [ DetectFargateIRFunction, Arn ]
+            ProtectLambdaArn: !GetAtt [ ProtectFargateIRFunction, Arn ]
+            LowResponseLambdaArn: !GetAtt [ LowResponseFargateIRFunction, Arn ]
+            MediumResponseLambdaArn: !GetAtt [ MediumResponseFargateIRFunction, Arn ]
+            HighResponseLambdaArn: !GetAtt [ HighResponseFargateIRFunction, Arn ]
+            MaximumResponseLambdaArn: !GetAtt [ MaximumResponseFargateIRFunction, Arn ]
+            ProcessEvidenceLambdaArn: !GetAtt [ ProcessEvidenceFargateIRFunction , Arn ]
+            RecoverLambdaArn: !GetAtt [ RecoverFargateIRFunction , Arn ]
+            NotifyCompleteLambdaArn: !GetAtt [ NotifyCompleteFargateIRFunction, Arn ]
+      RoleArn: !GetAtt [ StatesExecutionRole, Arn ]
+Outputs:
+  FargateIRFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt FargateIRFunction.Arn
+  FargateIRFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt LambdaExecutionRole.Arn

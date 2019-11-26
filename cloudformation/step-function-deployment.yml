@@ -1,0 +1,11 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a bucket for step function code bootstrapping.
+Resources:
+  StepFunctionCodeBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+Outputs:
+  StepFunctionCodeBucketName:
+    Description: Name of the S3 Bucket containing step function code.
+    Value: !Ref StepFunctionCodeBucket
