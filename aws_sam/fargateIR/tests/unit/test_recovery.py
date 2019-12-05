@@ -5,7 +5,7 @@ from moto import mock_ecs
 from moto.ec2 import utils as ec2_utils
 
 
-fh = open("tests/unit/fixtures/recovery_fixture.json")
+fh = open("tests/unit/fixtures/recover_fixture.json")
 EVENT_FIXTURE = json.loads(fh.read())
 fh.close()
 

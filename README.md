@@ -4,7 +4,7 @@ Proof of concept around how the SSM Agent running in Fargate can be orchestrated
 
 ## Build status
 
-- TBD after the repository is made public.  For now try running `make test`
+[![Build Status](https://travis-ci.com/andrewkrug/fargate-ir.svg?branch=master)](https://travis-ci.com/andrewkrug/fargate-ir)
 
 ## Status
 
