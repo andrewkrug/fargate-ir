@@ -104,13 +104,19 @@ def PublishEvent(event, context):
 def PublishRemediation(event, context):
 
     # Set Event Variables
-    gd_rem = event["remediation"]["success"]
-    gd_rem_desc = event["remediation"]["description"]
-    gd_rem_title = event["remediation"]["title"]
-    evidence = event["remediation"]["evidence"]["artifact_count"]
-    evidence_package = event["remediation"]["evidence"]["artifact_package"]
-    quicksight_dashboard = event["remediation"]["evidence"]["quicksight_url"]
-    confirm = event["remediation"]["evidence"].get("confirm")
+    gd_rem = event["detail"]["remediation"]["success"]
+    gd_rem_desc = event["detail"]["remediation"].get(
+        "description", "No description provided."
+    )
+    gd_rem_title = event["detail"]["remediation"].get("title", "Remediation Complete")
+    evidence = event["detail"]["remediation"]["evidence"]["artifact_count"]
+    evidence_package = event["detail"]["remediation"]["evidence"].get(
+        "artifact_package", ""
+    )
+    quicksight_dashboard = event["detail"]["remediation"]["evidence"].get(
+        "quicksight_url", ""
+    )
+    confirm = event["detail"]["remediation"]["evidence"].get("confirm")
     # Set Severity Color
     gd_color = getRemColor(gd_rem)
 

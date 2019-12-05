@@ -71,7 +71,7 @@ setup-test:
 
 .PHONY: run-test
 run-test: black flake
-	cd aws_sam/fargateIR/ && python -m pytest tests/ -v
+	cd aws_sam/fargateIR/ && python -m pytest tests/unit -v
 
 .PHONY: test-watch
 test-watch:

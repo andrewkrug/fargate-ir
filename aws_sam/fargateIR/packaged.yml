@@ -25,7 +25,7 @@ Resources:
     Properties:
       LayerName: FargateIRLayer
       Description: Includes comprehensive dependencies for working with fargateir.
-      ContentUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/4196e4c7dbb06517e92d9a9161462ce1
+      ContentUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6e2ad469c72d65d65778a7069f5f75ce
       CompatibleRuntimes:
       - python3.7
       LicenseInfo: MPL2.0
@@ -35,7 +35,7 @@ Resources:
     Properties:
       LayerName: PandasLayer
       Description: Includes comprehensive dependencies for working with fargateir.
-      ContentUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/31120dcc39caf7213bf81a2f31f45a33
+      ContentUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/d110da9df409a58e48ae6de6d5acd256
       CompatibleRuntimes:
       - python3.7
       LicenseInfo: MPL2.0
@@ -270,7 +270,7 @@ Resources:
   NotifyFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.notify
       Runtime: python3.7
       Role:
@@ -289,7 +289,7 @@ Resources:
   NotifyCompleteFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.notify_complete
       Runtime: python3.7
       Role:
@@ -308,7 +308,7 @@ Resources:
   DetectFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.detect
       Runtime: python3.7
       Role:
@@ -334,7 +334,7 @@ Resources:
   ProtectFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.protect
       Runtime: python3.7
       Role:
@@ -360,7 +360,7 @@ Resources:
   MaximumResponseFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.maximum_respond
       Runtime: python3.7
       Role:
@@ -386,7 +386,7 @@ Resources:
   HighResponseFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.high_respond
       Runtime: python3.7
       Role:
@@ -412,7 +412,7 @@ Resources:
   MediumResponseFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.medium_respond
       Runtime: python3.7
       Role:
@@ -438,7 +438,7 @@ Resources:
   LowResponseFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.low_respond
       Runtime: python3.7
       Role:
@@ -464,7 +464,7 @@ Resources:
   ProcessEvidenceFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.process_evidence
       Runtime: python3.7
       Role:
@@ -491,7 +491,7 @@ Resources:
   RecoverFargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.recover
       Runtime: python3.7
       Role:
@@ -517,7 +517,7 @@ Resources:
   FargateIRFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/6d42b4f439ee979cbd8804fa19bd061a
+      CodeUri: s3://fargateirstepfunctiondeplo-stepfunctioncodebucket-e52chdm1h1fv/860ae2c5cb90fb2b50b28b9a28b7bfb9
       Handler: handle.lambda_handler
       Runtime: python3.7
       Role:
